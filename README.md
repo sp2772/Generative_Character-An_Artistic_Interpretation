@@ -21,12 +21,12 @@ The goal was to develop a model that could create a consistent and compelling ar
     * [Face Detection and Cropping (YOLOv3)](#face-detection-and-cropping-yolov3)
 * [DCGAN Implementation](#dcgan-implementation)
     * [Architecture Overview](#architecture-overview)
-    * [Generator](#generator)
-    * [Discriminator](#discriminator)
+    * [Generator](#generator-architecture)
+    * [Discriminator](#discriminator-architecture)
 * [Training Process](#training-process)
-    * [Data Loading & Preprocessing](#data-loading--preprocessing-for-gan)
+    * [Data Loading & Preprocessing](#data-loading-and-preprocessing)
     * [Training Loop Details](#training-loop-details)
-    * [Hyperparameters & Variations](#hyperparameters--variations)
+    * [Hyperparameters & Variations](#hyperparameters)
 * [Results & Sample Outputs](#results--sample-outputs)
 * [How to Use](#how-to-use)
 * [Code Structure](#code-structure)
@@ -122,100 +122,179 @@ To train the GAN effectively on facial features and style, faces were detected a
     *(Alternatively, paste the URL directly into your browser to download)*
 3.  **Placement:** Place the downloaded `head.weights` file inside the cloned `AnimeHeadDetector` directory.
 
-**Cropping Process (Implemented in GAN Training Notebooks):**
+**Cropping Process (Pre-processing - Not in This Notebook)
 
-* The Jupyter notebooks (`Vivian_GAN_Training*.ipynb`) contain a `crop_face_yolov3` function.
-* **Functionality:**
-    * This function takes an input image directory (e.g., `vivian_images/` or `vivian_nsfw/`), an output directory (`vivian_cropped/`), the path to the `AnimeHeadDetector` directory, and the path to the `head.weights` file.
-    * It iterates through images in the input directory.
-    * For each image, it uses the `AnimeHeadDetector`'s functionality (specifically `AnimeHeadDetection.py`) to detect faces.
-    * If a face is detected, it crops the bounding box area from the original image.
-    * The cropped face image is then saved to the specified output directory (`vivian_cropped/`).
-* **Execution:** This cropping function is typically run once at the beginning of the GAN training notebooks to prepare the dataset of faces. It processes images from both the SFW (`vivian_images/`) and NSFW (`vivian_nsfw/`) directories, consolidating all cropped faces into `vivian_cropped/`.
+**Note:** This notebook (`Vivian_GAN_Training_morelatent_Continue_training.ipynb`) assumes images are already cropped and prepared. It loads pre-cropped face images from `vivian_nsfw_sfw_cropped_combined_faces/` directory.
 
 ---
 
 ## DCGAN Implementation
 
-A Deep Convolutional Generative Adversarial Network (DCGAN) was implemented from scratch using TensorFlow/Keras.
+A Deep Convolutional Generative Adversarial Network (DCGAN) was implemented from scratch using TensorFlow/Keras with checkpoint resumption capability.
 
 ### Architecture Overview
 
-The DCGAN consists of two competing neural networks designed to operate on **128x128** or **256x256** pixel images:
+The DCGAN consists of two competing neural networks designed to operate on **128x128 pixel RGB images**:
 
-1.  **Generator (G):** Takes a random noise vector (latent vector) as input and attempts to generate a realistic image of Vivian's face at the target resolution (128x128 or 256x256).
-2.  **Discriminator (D):** Takes an image (either real from the dataset or fake from the Generator) at the target resolution and tries to classify it as real or fake.
-
----
-### Generator
-
-* **Input:** A latent vector (random noise) of size `LATENT_DIM`. Experiments used dimensions of **100** (`Vivian_GAN_Training.ipynb`) and **512** (`Vivian_GAN_Training_morelatent*.ipynb`).
-* **Layers (Example for 128x128 output, details vary slightly for 256x256):**
-    * A `Dense` layer projects the latent vector into a higher-dimensional space and reshapes it into an initial small feature map (e.g., 4x4x1024). `use_bias=False` is used, often paired with Batch Normalization.
-    * Multiple blocks of `Conv2DTranspose` (Transposed Convolution) layers with `strides=2` are used to progressively upsample the spatial dimensions (4x4 -> 8x8 -> 16x16 -> 32x32 -> 64x64 -> 128x128). The number of filters typically decreases in each upsampling step (e.g., 1024 -> 512 -> 256 -> 128 -> 64). Kernel size is often 5x5.
-    * `BatchNormalization` is applied after `Conv2DTranspose` layers (except the output layer) to help stabilize training. `momentum=0.8` is commonly used.
-    * `LeakyReLU` activation function (`alpha=0.2`) is used in the hidden layers.
-* **Output:** A tensor representing the generated image with 3 color channels (RGB) at the target resolution (e.g., 128x128x3).
-* **Output Activation:** `tanh` activation function, scaling the output pixel values to the range [-1, 1].
-
----
-### Discriminator
-
-* **Input:** An image (real or fake) with 3 color channels at the target resolution (e.g., 128x128x3).
-* **Layers (Example for 128x128 input, details vary slightly for 256x256):**
-    * A series of `Conv2D` layers with `strides=2` progressively downsample the input image into smaller, deeper feature maps (e.g., 128x128 -> 64x64 -> 32x32 -> 16x16 -> 8x8 -> 4x4). The number of filters typically increases (e.g., 64 -> 128 -> 256 -> 512 -> 1024). Kernel size is often 5x5.
-    * `LeakyReLU` activation function (`alpha=0.2`) is used after convolutional layers.
-    * `Dropout` (rate typically 0.3) is applied after activations in several layers for regularization.
-    * `BatchNormalization` is used in later convolutional blocks (`momentum=0.8`).
-    * A `Flatten` layer converts the final feature map (e.g., 4x4x1024) into a 1D vector.
-* **Output:** A single scalar value.
-* **Output Activation:** `sigmoid` activation function, outputting a probability (between 0 and 1) indicating whether the input image is classified as real.
+1.  **Generator (G):** Takes a random noise vector (latent vector) as input and generates a realistic 128x128 RGB image of Vivian's face.
+2.  **Discriminator (D):** Takes a 128x128 RGB image (either real from the dataset or fake from the Generator) and classifies it as real or fake.
 
 ---
 
-### Data Loading & Preprocessing (for GAN)
+### Generator Architecture
 
-* **Input Data:** The training process uses the cropped face images stored in the `vivian_cropped/` directory.
-* **Preprocessing Steps (within  `preprocess_image` function in notebooks):**
-    1.  **Load Image:** Images are loaded using PIL (`Image.open`).
-    2.  **Find Biggest Square:** A function takes an image and a `mask_threshold` (e.g., 245). It converts the image to grayscale and identifies non-background pixels (pixels darker than the threshold). It then finds the largest possible square bounding box containing these non-background pixels, potentially allowing some tolerance (`tolerance` parameter) to include slightly more area around the main subject. This helps center the face and remove excess background before resizing.
-    3.  **Crop Square:** The image is cropped to the determined square bounding box.
-    4.  **Resize:** The cropped square image is resized to the target dimensions (`IMAGE_SIZE` x `IMAGE_SIZE`, e.g., 128x128 or 256x256) using `Image.Resampling.LANCZOS` for high-quality downsampling.
-    5.  **Convert & Normalize:** The resized image is converted to a NumPy array (`float32`), and pixel values are normalized from the [0, 255] range to the **[-1, 1]** range. This is done by dividing by 127.5 and subtracting 1.0.
-* **Data Loading:** A custom data generator (`DataGenerator`) or `tf.keras.utils.image_dataset_from_directory` loads these preprocessed images in batches.
-* **Augmentation:** Random horizontal flipping (`tf.image.random_flip_left_right`) is applied during training to augment the dataset.
+* **Input:** A latent vector (random noise) of size **512** (`LATENT_DIM = 512`)
+* **Architecture (for 128x128 output):**
+    * **Dense Layer:** Projects latent vector to 4×4×1024 feature map, `use_bias=False`
+    * **Reshape:** To (4, 4, 1024)
+    * **Upsampling Blocks (5 blocks total):**
+        * Block 1: Conv2DTranspose(512, kernel_size=4, strides=2) → 8×8×512
+        * Block 2: Conv2DTranspose(256, kernel_size=4, strides=2) → 16×16×256
+        * Block 3: Conv2DTranspose(128, kernel_size=4, strides=2) → 32×32×128
+        * Block 4: Conv2DTranspose(64, kernel_size=4, strides=2) → 64×64×64
+        * Block 5: Conv2DTranspose(3, kernel_size=4, strides=2) → 128×128×3
+    * Each upsampling block (except output) includes:
+        * `BatchNormalization(momentum=0.9)`
+        * `ReLU` activation
+        * `use_bias=False`
+* **Output:** 128×128×3 RGB image
+* **Output Activation:** `tanh` (scales output to [-1, 1])
 
 ---
+
+### Discriminator Architecture
+
+* **Input:** 128×128×3 RGB image
+* **Architecture (for 128x128 input):**
+    * **Downsampling Blocks (5 blocks total):**
+        * Block 1: Conv2D(64, kernel_size=4, strides=2) → 64×64×64
+        * Block 2: Conv2D(128, kernel_size=4, strides=2) → 32×32×128
+        * Block 3: Conv2D(256, kernel_size=4, strides=2) → 16×16×256
+        * Block 4: Conv2D(512, kernel_size=4, strides=2) → 8×8×512
+        * Block 5: Conv2D(1024, kernel_size=4, strides=2) → 4×4×1024
+    * Each downsampling block includes:
+        * `LeakyReLU(alpha=0.2)` activation
+        * `Dropout(0.3)` regularization
+        * `BatchNormalization()` (applied in blocks 2-5)
+    * **Flatten** layer
+    * **Dense(1)** output layer
+* **Output:** Single scalar probability
+* **Output Activation:** `sigmoid` (outputs probability between 0 and 1)
+
+---
+### Training Process
+    * Below is a detailed explanation for Training process that is implemented 
+
+### Data Loading And Preprocessing
+
+* **Input Data:** Pre-cropped face images from `vivian_nsfw_sfw_cropped_combined_faces/` directory
+* **Data Generator:** Custom `SingleClassDataGenerator` class (extends `keras.utils.Sequence`)
+* **Preprocessing Pipeline (in `_generate_batch` method):**
+    1.  **Load Image:** Using PIL (`Image.open(...).convert('RGB')`)
+    2.  **Smart Resizing:**
+        * If image dimensions are within tolerance (±89 pixels of 128): Direct resize to 128×128 using LANCZOS
+        * Otherwise: Center crop to square, then resize to 128×128
+    3.  **Random Augmentations (30% probability each):**
+        * Horizontal flip
+        * Brightness adjustment (0.9-1.1 range)
+        * Contrast adjustment (0.9-1.1 range)
+    4.  **Normalization:**
+        * Convert to float32 and divide by 255.0 → [0, 1]
+        * Apply formula: `(img_array - 0.5) / 0.5` → [-1, 1]
+* **Batch Loading:** Images loaded in batches with error handling and automatic replacement of corrupted files
+* **Max Images:** Configurable limit (`MAX_IMAGES_PER_CLASS = 10000`)
+
+---
+
 ### Training Loop Details
 
-* **Adversarial Training:** Implemented within the `train_step` method of a custom `tf.keras.Model` subclass (`DCGAN`). The loop alternates between training the Discriminator and the Generator using `tf.GradientTape`.
+* **Implementation:** Custom `ImprovedDCGAN` class with `train_step` method using `tf.GradientTape`
+* **Adversarial Training Process:**
+    
     1.  **Train Discriminator:**
-        * Takes a batch of real images (preprocessed cropped faces).
-        * Generates a batch of fake images using the Generator from random noise.
-        * Calculates the Discriminator's loss on real images (target label: 1) and fake images (target label: 0) using `BinaryCrossentropy` (`from_logits=False` because of the sigmoid output). Label smoothing (e.g., using 0.9 for real labels) might be applied.
-        * The total discriminator loss is the average of the real and fake losses.
-        * Gradients are computed and applied to the Discriminator's weights using its optimizer.
+        * Evaluate on real images (label: 0.9 with smoothing)
+        * Generate fake images from random noise
+        * Evaluate on fake images (label: 0.1 with smoothing)
+        * Loss = (real_loss + fake_loss) / 2
+        * Apply gradients to Discriminator only
+    
     2.  **Train Generator:**
-        * Generates a *new* batch of fake images from random noise.
-        * Calculates the Generator's loss based on the Discriminator's prediction for these fake images (target label: 1, aiming to fool the discriminator) using `BinaryCrossentropy`.
-        * Gradients are computed *only* for the Generator's weights and applied using its optimizer.
-* **Loss Function:** `tf.keras.losses.BinaryCrossentropy` is used for both networks.
-* **Optimizers:** `tf.keras.optimizers.Adam` is used for both the Generator (`generator_optimizer`) and Discriminator (`discriminator_optimizer`), configured with a specific learning rate (e.g., 0.0001 or 0.0002) and `beta_1` (e.g., 0.5).
+        * Generate new batch of fake images
+        * Get Discriminator predictions (target: 1.0 to fool discriminator)
+        * Calculate loss using BinaryCrossentropy
+        * Apply gradients to Generator only
+
+* **Loss Function:** `BinaryCrossentropy(from_logits=False, label_smoothing=0.1)`
+* **Optimizers:**
+    * **Generator:** `Adam(lr=0.0001, beta_1=0.5, beta_2=0.999)`
+    * **Discriminator:** `Adam(lr=0.0004, beta_1=0.5, beta_2=0.999)`
+    * Note: Discriminator has 4× higher learning rate
 
 ---
-### Hyperparameters & Variations
 
-* **Image Size:** Experiments run with `IMAGE_SIZE` set to **128** (`Vivian_GAN_Training.ipynb`) and **256** (`Vivian_GAN_Training_morelatent*.ipynb`).
-* **Batch Size:** Typically 64.
-* **Epochs:** Trained for 300+ epochs, with notebooks available for continuing training (`Vivian_GAN_Training_morelatent_Continue_training.ipynb`).
-* **Latent Dimension (`LATENT_DIM`):** Experiments used **100** and **512**.
-* **Learning Rate:** Often set around 0.0001 or 0.0002.
-* **Adam Beta_1:** Set to 0.5.
-* **Checkpoints:** Model weights (Generator and Discriminator) are saved periodically (e.g., every 50 epochs) into a `checkpoints/` directory using `generator.save_weights` and `discriminator.save_weights`.
-* **Sample Generation:**
-    * Sample images (`generate_and_save_images`) generated by the current Generator state are saved at regular intervals (e.g., every 10 epochs) to visually monitor progress.
-    * Comparison images (`generate_and_save_comparison_images`) showing real images alongside generated images are saved separately every few epochs (e.g., every 50 epochs).
+### Checkpoint Resumption System
 
+* **Checkpoint Detection:** Automatically scans `checkpoints_128x128/vivian/` for latest saved models
+* **Resume Logic:**
+    * Finds latest epoch with both generator and discriminator weights
+    * Loads models using `keras.models.load_model()`
+    * Resumes training from next epoch
+* **Checkpoint Naming:** `generator2_epoch_{epoch:03d}.keras`, `discriminator2_epoch_{epoch:03d}.keras`
+* **Fallback:** If no checkpoints found, starts training from scratch
+
+---
+
+### Hyperparameters
+
+* **Image Size:** 128×128 pixels
+* **Batch Size:** 8
+* **Total Epochs:** 400 (`EPOCHS_PER_CLASS = 400`)
+* **Latent Dimension:** 512
+* **Learning Rates:**
+    * Generator: 0.0001
+    * Discriminator: 0.0004
+* **Adam Parameters:**
+    * beta_1: 0.5
+    * beta_2: 0.999
+* **Label Smoothing:** 0.1
+* **Dropout Rate:** 0.3
+* **Batch Normalization Momentum:** 0.9
+* **Image Crop Tolerance:** ±89 pixels
+
+---
+
+### Saving & Monitoring
+
+* **Checkpoint Frequency:** Every 30 epochs
+    * Saves to: `checkpoints_128x128/vivian/`
+    * Format: `.keras` files
+* **Sample Image Generation:** Every 5 epochs
+    * Generates 8 sample images in 2×4 grid
+    * Saves to: `Vivian_128x128_results/new_generated_samples_vivian_epoch_{epoch}.png`
+* **Comparison Images:** Every 10 epochs
+    * Shows 8 real vs 8 generated images
+    * Saves to: `Vivian_128x128_results/comparison_vivian_epoch_{epoch}.png`
+* **Final Model:** Saved as `vivianxsp2GenNet.keras` at training completion
+* **Progress Tracking:** Real-time progress bars using `tqdm` with loss metrics
+
+---
+
+### Early Stopping Conditions
+
+Training automatically stops if any of these conditions are met:
+
+1. **Discriminator Collapse:** `avg_d_loss < 0.01` (discriminator too strong)
+2. **Generator Failure:** `avg_g_loss > 6.0` (generator performing very poorly)
+3. **Loss Spike Detection:** If recent generator loss (5-epoch moving average) suddenly doubles, indicating training instability
+
+---
+
+### Error Handling & Robustness
+
+* **Corrupted Image Handling:** Automatic detection and replacement with random valid image
+* **Multi-format Support:** Handles PNG, JPG, JPEG files (case-insensitive)
+* **Max Retry Logic:** Up to `len(batch) * 2` attempts to load valid images per batch slot
+* **Critical Failure Detection:** Logs when unable to load any valid image after max retries
 ---
 
 ## Results & Sample Outputs
@@ -266,6 +345,7 @@ How the generations differ over epochs:
 * `vivian_cropped/`: Directory where cropped faces (used for training) are saved.
 * `checkpoints/`: Directory where trained model weights (Generator & Discriminator) are saved.
 * *(Sample image files generated during training might also be present)*
+
 
 ---
 
