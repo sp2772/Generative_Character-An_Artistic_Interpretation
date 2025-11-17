@@ -122,9 +122,9 @@ To train the GAN effectively on facial features and style, faces were detected a
     *(Alternatively, paste the URL directly into your browser to download)*
 3.  **Placement:** Place the downloaded `head.weights` file inside the cloned `AnimeHeadDetector` directory.
 
-**Cropping Process (Pre-processing - Not in This Notebook)
+**Cropping Process (Pre-processing - crop_vivian_faces.py)
 
-**Note:** This notebook (`Vivian_GAN_Training_morelatent_Continue_training.ipynb`) assumes images are already cropped and prepared. It loads pre-cropped face images from `vivian_nsfw_sfw_cropped_combined_faces/` directory.
+**Note:** This notebook (`Vivian_GAN_Training_morelatent_Continue_training.ipynb`) assumes images are already cropped and prepared using crop_vivian_faces.py. It loads pre-cropped face images from `vivian_nsfw_sfw_cropped_combined_faces/` directory after storing the face cropped images with the preprocessing program.
 
 ---
 
