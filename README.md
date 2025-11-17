@@ -301,6 +301,15 @@ Training automatically stops if any of these conditions are met:
 
 The training successfully converged, resulting in a Generator capable of producing unique portraits of Vivian in a consistent, painterly art style. The model learned key facial features and rendered them with an impressionistic quality.
 
+**Sample Real Vivian images**
+
+![130601679_p1](https://github.com/user-attachments/assets/c1ae8c04-8b04-44e6-876c-4c6566ffc751)
+![130566562_p3](https://github.com/user-attachments/assets/71b4c16a-b059-49c0-9d9b-43a9965af6c9)
+![130575513_p1](https://github.com/user-attachments/assets/1474c7d7-5fc7-4b03-b444-ed945eb68e15)
+![130575721_p1](https://github.com/user-attachments/assets/d07f73c6-f011-49b1-bb2b-07079a60331e)
+![130601679_p1](https://github.com/user-attachments/assets/8430e4d5-33f6-4211-8551-5263da4c5885)
+
+
 **Sample Generations:**
 
 How the generations differ over epochs:
