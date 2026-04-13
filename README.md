@@ -305,7 +305,9 @@ The training successfully converged, resulting in a Generator capable of produci
 
 ![130601679_p1](https://github.com/user-attachments/assets/c1ae8c04-8b04-44e6-876c-4c6566ffc751)
 ![130575721_p1](https://github.com/user-attachments/assets/d07f73c6-f011-49b1-bb2b-07079a60331e)
-![130601679_p1](https://github.com/user-attachments/assets/8430e4d5-33f6-4211-8551-5263da4c5885)
+![130594628_p1](https://github.com/user-attachments/assets/09d52e55-0fef-4fae-a648-4d27a88dd18a)
+![130589414_p2](https://github.com/user-attachments/assets/a392cc62-cc77-4091-afad-9e78457e6891)
+
 
 
 **Sample Generations:**
