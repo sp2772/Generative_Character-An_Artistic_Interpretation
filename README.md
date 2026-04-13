@@ -312,13 +312,19 @@ The training successfully converged, resulting in a Generator capable of produci
 
 How the generations differ over epochs:
 
-<img width="1754" height="888" alt="new_generated_samples_vivian_epoch_60" src="https://github.com/user-attachments/assets/e9d8876f-b14b-438c-8afa-70a181f80985" />
-
-<img width="1754" height="888" alt="new_generated_samples_vivian_epoch_105" src="https://github.com/user-attachments/assets/67f7cdd8-c33b-4aa2-9c51-d40478827535" />
+<img width="1754" height="888" alt="new_generated_samples_vivian_epoch_350" src="https://github.com/user-attachments/assets/12fc75da-b40b-4405-a077-2f77d08f85b2" />
 
 <img width="1754" height="888" alt="new_generated_samples_vivian_epoch_230" src="https://github.com/user-attachments/assets/634e1b34-24b1-4a96-b49f-daffb38bb743" />
 
-<img width="1754" height="888" alt="new_generated_samples_vivian_epoch_350" src="https://github.com/user-attachments/assets/12fc75da-b40b-4405-a077-2f77d08f85b2" />
+<img width="1754" height="888" alt="new_generated_samples_vivian_epoch_105" src="https://github.com/user-attachments/assets/67f7cdd8-c33b-4aa2-9c51-d40478827535" />
+
+<img width="1754" height="888" alt="new_generated_samples_vivian_epoch_60" src="https://github.com/user-attachments/assets/e9d8876f-b14b-438c-8afa-70a181f80985" />
+
+
+
+
+
+
 
 
 
